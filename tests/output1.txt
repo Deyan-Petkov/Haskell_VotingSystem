@@ -1,0 +1,20 @@
+Round 1: 12 votes
+First preferences:
+  Candidate 1: 5
+  Candidate 4: 4
+  Candidate 2: 2
+  Candidate 3: 1
+Candidate 3 is eliminated.
+
+Round 2: 12 votes
+First preferences:
+  Candidate 1: 5
+  Candidate 4: 4
+  Candidate 2: 3
+Candidate 2 is eliminated.
+
+Round 3: 11 votes
+First preferences:
+  Candidate 4: 6
+  Candidate 1: 5
+Candidate 4 is selected.

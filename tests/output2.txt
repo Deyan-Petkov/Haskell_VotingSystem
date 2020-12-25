@@ -1,0 +1,62 @@
+Round 1: 10000 votes
+First preferences:
+  Candidate 3: 1294
+  Candidate 7: 1279
+  Candidate 2: 1259
+  Candidate 1: 1258
+  Candidate 5: 1253
+  Candidate 8: 1240
+  Candidate 4: 1235
+  Candidate 6: 1182
+Candidate 6 is eliminated.
+
+Round 2: 9981 votes
+First preferences:
+  Candidate 3: 1462
+  Candidate 1: 1444
+  Candidate 7: 1430
+  Candidate 2: 1421
+  Candidate 8: 1416
+  Candidate 4: 1404
+  Candidate 5: 1404
+Candidate 5 is eliminated.
+
+Round 3: 9951 votes
+First preferences:
+  Candidate 3: 1688
+  Candidate 7: 1661
+  Candidate 1: 1656
+  Candidate 8: 1653
+  Candidate 2: 1649
+  Candidate 4: 1644
+Candidate 4 is eliminated.
+
+Round 4: 9898 votes
+First preferences:
+  Candidate 3: 2001
+  Candidate 2: 1985
+  Candidate 8: 1979
+  Candidate 7: 1975
+  Candidate 1: 1958
+Candidate 1 is eliminated.
+
+Round 5: 9824 votes
+First preferences:
+  Candidate 8: 2492
+  Candidate 3: 2463
+  Candidate 7: 2439
+  Candidate 2: 2430
+Candidate 2 is eliminated.
+
+Round 6: 9638 votes
+First preferences:
+  Candidate 8: 3223
+  Candidate 3: 3211
+  Candidate 7: 3204
+Candidate 7 is eliminated.
+
+Round 7: 9163 votes
+First preferences:
+  Candidate 8: 4606
+  Candidate 3: 4557
+Candidate 8 is selected.
