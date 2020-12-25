@@ -43,13 +43,15 @@ firstPreference p =  map head p
 -- leastPreference :: Poll -> Int
 -- leastPreference cnd = i
 leastPreference :: Poll -> Poll
-leastPreference cnd = n
+leastPreference cnd = k
     where
-        n = [Set.elems x | x <- m] -- convert the Set back to List
-        m =  [ x | x <- l, not ( Set.null x) ]
-        l = [Set.difference x k | x <- j] -- the Set without the least candidate
-        k = Set.singleton i -- convert the least candidate into Set 
-        j = map Set.fromList cnd --conver the list into Set so we can search more efficiently
+        -- n = [Set.elems x | x <- m] -- convert the Set back to List
+        -- m =  [ x | x <- l, not ( Set.null x) ]
+        -- l = [Set.difference x k | x <- j] -- the Set without the least candidate
+        -- k = Set.singleton i -- convert the least candidate into Set 
+        -- j = map Set.fromList cnd --conver the list into Set so we can search more efficiently
+        k = [ x | x <- j , not (null x)]
+        j = map (filter (/= i)) cnd
         i = head $ fromMaybe  [] h --3 //the candidate with least first votes
         h = Map.lookup g f --Just [3] //the values that the firt key is pair with
         g = head $ take 1 $ Map.keys f -- 1 //take the first key from the Map as they are ordered and the least chosen candidate will be at first position in the Map
@@ -79,6 +81,8 @@ let l = [Set.difference x k | x <- j]
 let m = [ Set.elems x | x <- l]
 --}
 
+
+--takeWhile (not . null) $ iterate leastPreference $ stringToIntVote $ separateVotes poll
 
 
 poll :: String 
