@@ -41,9 +41,9 @@ firstPreference :: Poll -> Candidates
 firstPreference p =  map head p
 
 leastPreference :: Poll -> Int
---leastPreference cnd = head $ fromMaybe [] $ Map.lookup $ head $ take 1 $ Map.keys $ Map.fromList $ zip (map length ) group $ sort $ firstPreference cnd
 leastPreference cnd = i
     where
+        
         i = head $ fromMaybe  [] h --3 //the candidate with least first votes
         h = Map.lookup g f --Just [3] //the values that the firt key is pair with
         g = head $ take 1 $ Map.keys f -- 1 //take the first key from the Map as they are ordered and the least chosen candidate will be at first position in the Map
@@ -55,30 +55,22 @@ leastPreference cnd = i
         a = cnd    --[[4,2,3,1],[2,3,4,1],... list with all the votes
 
 
+
+discard :: Int -> Poll -> Poll
+discard candidate fromPoll = m
+    where 
+        j = map Set.fromList fromPoll
+        k = Set.singleton candidate
+        l = [Set.difference x k | x <- j]
+        m = [Set.elems x | x <- l]
+
+
 {--
-    a = all votes
-    b =  firstPref a
-    c = group $ sort b
-    d = map length c
-    --e = create set for each list
-    e = zip d c
-    map each set to its size as a k  //places the smallest key(length of accurances of candidate) on first place in the map so we just need to find the value of the smalles k)
-    f =  Map.fromList e
-    find the smallest/first k 
-       g = head $ take 1 $ Map.keys f
-    take the value of this k
-       h =  Map.lookup g f
-    take the k form Maybe
-        i = head $ fromMaybe [] h
-
-
-case result of
-     Just a -> putStrLn $ "I'm so happy you chose "++show a++"."
-     Nothing -> putStrLn $ "So sorry; "++input++" is not a valid option."
-
-    --}
-
-
+let j = map Set.fromList a
+let k = Set.singleton i
+let l = [Set.difference x k | x <- j]
+let m = [ Set.elems x | x <- l]
+--}
 
 
 
