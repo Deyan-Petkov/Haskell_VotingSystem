@@ -76,9 +76,18 @@ topCandidate m  = head $ tail $ Set.elems $ Map.keysSet m
 
 ---------------------if ((topCandidate f) >= (length b)) then True else False 
 
-winner :: Int -> IO()
-winner w = putStrLn $ "The winner is " ++ show w ++ " with "
+winner :: Map Int [Int] -> Bool 
+winner w = if ((topCandidate w) > (length b)) then True else False
 
+-- winner :: Int -> IO()
+-- winner w = putStrLn $ "The winner is " ++ show w ++ " with "
+-- if the number of occurancecs of certain candidate 
+-- is greater than the number of votes left then this candidate is wwinner
+topCandPos :: Poll -> Map Int [Int]
+topCandPos p = Map.fromList $ zip d c -- [(3,[2,2,2]),(4,[4,4,4,4])]
+    where
+        d =  map length c
+        c =  group $ sort $ firstPreference p
 
 --takeWhile (not . null) $ iterate leastPreference $ stringToIntVote $ separateVotes poll
 
