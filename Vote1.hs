@@ -1,4 +1,4 @@
-module Vote where
+module Vote1 where
 
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -43,19 +43,16 @@ firstPreference p =  map head p
 -- leastPreference :: Poll -> Int
 -- leastPreference cnd = i
 leastPreference :: Poll -> Poll
-
-
---leastPreference cnd =     
-    -- [x | x <- j, not (null x)] 
-    -- where
-    --     j = map (filter ( /= (head $ fromMaybe [] $ Map.lookup (head $ take 1 $ Map.keys f) f))) cnd 
-    --     f = Map.fromList (map length (group $ sort $ firstPreference cnd)
 leastPreference cnd = k
     where
+        -- return a map with the candidates and the number of occurances
+        -- in first place for each of them
+        --then take this map and check if we have winner
+        -- if we don't then loop again
 
         k = [ x | x <- j , not (null x)]
         j = map (filter (/= i)) cnd
-        i = head $ fromMaybe  [] h --3 //the candidate with least first votes
+        i = head $ fromMaybe  [] h --3 //the candidate with least first votes 
         h = Map.lookup g f --Just [3] //the values that the firt key is pair with
         g = head $ take 1 $ Map.keys f -- 1 //take the first key from the Map as they are ordered and the least chosen candidate will be at first position in the Map
         f = Map.fromList e --[(1,[3]),(2,[2,2])..
@@ -76,8 +73,31 @@ topCandidate m  = head $ tail $ Set.elems $ Map.keysSet m
 
 ---------------------if ((topCandidate f) >= (length b)) then True else False 
 
-winner :: Int -> IO()
-winner w = putStrLn $ "The winner is " ++ show w ++ " with "
+winner :: Map Int [Int] -> Poll-> Bool 
+winner w  p = topCandidate w > div (length b)  (Map.size w)
+    where
+        b = firstPreference p
+
+discard :: Map Int [Int] -> Poll -> Poll
+discard m p = k
+    where
+        -- j = map (filter (/= i)) p
+        -- i = head $ fromMaybe [] $ Map.lookup (head $ take 1 $ Map.keys m) m
+        k = [ x | x <- j , not (null x)]
+        j = map (filter (/= i)) p
+        i = head $ fromMaybe  [] h --3 //the candidate with least first votes 
+        h = Map.lookup g m --Just [3] //the values that the firt key is pair with
+        g = head $ take 1 $ Map.keys m -- 1 //take the first key from the Map as they are ordered and the least chosen candidate will be at first position in the Map
+       
+-- winner :: Int -> IO()
+-- winner w = putStrLn $ "The winner is " ++ show w ++ " with "
+-- if the number of occurancecs of certain candidate 
+-- is greater than the number of votes left then this candidate is wwinner
+mapCandidates :: Poll -> Map Int [Int]
+mapCandidates p = Map.fromList $ zip d c -- [(3,[2,2,2]),(4,[4,4,4,4])]
+    where
+        d =  map length c
+        c =  group $ sort $ firstPreference p
 
 
 --takeWhile (not . null) $ iterate leastPreference $ stringToIntVote $ separateVotes poll
