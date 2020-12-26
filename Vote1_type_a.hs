@@ -13,13 +13,7 @@ readVotes :: FilePath -> IO()
 readVotes path =  do
     vote <- readFile path
     -- print $ stringToIntVote $ separateVotes vote
-    print  vote
-
-    
-
-drawing :: Poll -> Poll
-drawing p = if winner (mapCandidates p) p then p else discard (mapCandidates p) p
-
+    print 2
 
 {--After reading the file containing votes we need to split 
 the votes and candidates from each other in a way that we can
@@ -36,35 +30,32 @@ stringToIntVote :: [[String]] -> [[Int]]
 stringToIntVote [x] = []
 stringToIntVote (x:xs) = [digitToInt a | a <- map head x] : stringToIntVote xs
 
-type Candidates = [Int]
-type Poll = [Candidates]
+type Candidates a =  [a]
+type Poll a = [Candidates a]
 
 
 {--Returns list with all first preferences--}
-firstPreference :: Poll -> Candidates
+firstPreference :: (Ord a, Eq a) => Poll a -> Candidates a
 firstPreference =  map head 
 
 
 
-
-votesLeft :: Poll -> Int
+votesLeft :: (Ord a, Eq a) => Poll a -> Int
 votesLeft  = length 
 -- spent :: Poll -> Poll
 -- spent cnd = 
 
-topCandidate :: Map Int [Int] -> Int 
+topCandidate :: (Ord a, Eq a) => Map a [a] -> a
 topCandidate m  = head $ tail $ Set.elems $ Map.keysSet m
 
 ---------------------if ((topCandidate f) >= (length b)) then True else False 
 
-winner :: Map Int [Int] -> Poll-> Bool 
-winner w  p = topCandidate w > div (length b)  (Map.size w)
+winner :: (Ord a, Eq a, Show a) => Map a [a] -> Poll a -> Bool
+winner w  p = show (topCandidate w) > show (div (length b)  (Map.size w))
     where
         b = firstPreference p
 
-
-
-discard :: Map Int [Int] -> Poll -> Poll
+discard ::(Ord a, Eq a) => Map a [a] -> Poll a -> Poll a
 discard m p = k
     where
         -- j = map (filter (/= i)) p
@@ -79,12 +70,11 @@ discard m p = k
 -- winner w = putStrLn $ "The winner is " ++ show w ++ " with "
 -- if the number of occurancecs of certain candidate 
 -- is greater than the number of votes left then this candidate is wwinner
-mapCandidates :: Poll -> Map Int [Int]
+mapCandidates :: (Ord a, Eq a) =>  Poll a -> Map Int [a]
 mapCandidates p = Map.fromList $ zip d c -- [(3,[2,2,2]),(4,[4,4,4,4])]
     where
         d =  map length c
         c =  group $ sort $ firstPreference p
-
 
 
 
