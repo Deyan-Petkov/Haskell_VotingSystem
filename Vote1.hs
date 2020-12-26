@@ -9,20 +9,27 @@ import Data.List
 import Data.Maybe
 
 
+-- *Vote1> c
+-- [(1,3),(2,2),(4,4),(5,1)]
+-- *Vote1> d
+-- ["Candidate",": "]
+-- *Vote1> putStr (head d) >>  putStrLn (" " ++ ( show $ snd $ head c))
+-- Candidate 3
+-- *Vote1>
+
 readVotes :: FilePath -> IO()
 readVotes path =  do
     vote <- readFile path
     -- print $ stringToIntVote $ separateVotes vote
     -- print $ winnerCandidate  $ mapCandidates $ drawing $ stringToIntVote $ separateVotes vote
     let a = mapCandidates $ drawing $ stringToIntVote $ separateVotes vote
-    print a
+    --print a
+    print $ Map.assocs a
     print $ show $ winnerCandidate $  a
 
+{--iterates over the election discarding candidates until one of them obtain majority--}
 drawing :: Poll -> Poll
-drawing p = if winner (mapCandidates p) p then p else drawing (discard (mapCandidates p) p) -- RECURSIVE
-
-
---[x | x <- iterate  drawing $ stringToIntVote $ separateVotes poll, ( not $ winner (mapCandidates x) x) ]
+drawing p = if winner (mapCandidates p) p then p else drawing (discard (mapCandidates p) p) 
 
 {--After reading the file containing votes we need to split 
 the votes and candidates from each other in a way that we can
@@ -37,62 +44,51 @@ separateVotes votes =  [words w | w <- lines votes]
 the candidates from literal to numeriacal form.--}
 stringToIntVote :: [[String]] -> [[Int]] 
 stringToIntVote [] = []
-stringToIntVote (x:xs) = [digitToInt a | a <- map head x] : stringToIntVote xs
+--stringToIntVote (x:xs) = [digitToInt a | a <- map head x] : stringToIntVote xs
+stringToIntVote xs
+  = map (\ x -> [digitToInt a | a <- map head x]) xs
 
-type Candidates = [Int]
-type Poll = [Candidates]
+type Vote = [Int] -- a single vote is represented by list of candidates
+type Poll = [Vote]
 
 
 {--Returns list with all first preferences--}
-firstPreference :: Poll -> Candidates
+firstPreference :: Poll -> Vote
 firstPreference =  map head 
 
+{--returns the count of votes for the most elected candidate--}
+topCandidateVotes :: Map Int Int -> Int 
+topCandidateVotes m  = last $ Set.elems $ Map.keysSet m
 
-
-
-votesLeft :: Poll -> Int
-votesLeft  = length 
--- spent :: Poll -> Poll
--- spent cnd = 
-
-topCandidate :: Map Int Int -> Int 
-topCandidate m  = last $ Set.elems $ Map.keysSet m
-
----------------------if ((topCandidate f) >= (length b)) then True else False 
-
+{--returns the winner--}
 winnerCandidate :: Map Int Int -> Int
 winnerCandidate m = fromMaybe 1  $ Map.lookup (last $ Set.elems $ Map.keysSet m) m
 
+{--returns true if some of the candidates have been chosen more
+    times than the ha--}
 winner :: Map Int Int -> Poll-> Bool 
-winner w  p = topCandidate w > div (length $ firstPreference p) 2 
--- winner w  p = topCandidate w > div (length b)  (votesLeft p)
---winner w  p = topCandidate w > div (length b)  (Map.size w)
-    -- where
-    --     b = firstPreference p
+winner w  p = topCandidateVotes w > div (length $ firstPreference p) 2 
 
-       
-
+{--remove the candidate with least first preferences
+    in the votes and eventually clean the list from empty votes--}
 discard :: Map Int Int -> Poll -> Poll
-discard m p = [ x | x <- j , not (null x)]
+discard m p = [ x | x <- j , not (null x)] --take all votes witout the empty ones
     where
-        -- j = map (filter (/= i)) p
-        -- i = head $ fromMaybe [] $ Map.lookup (head $ take 1 $ Map.keys m) m
-        --k = [ x | x <- j , not (null x)]
-        j = map (filter (/= i)) p
-        i = fromMaybe 1 h --3 //the candidate with least first votes 
-        h = Map.lookup g m --Just 3 //the values that the firt key is pair with
+        j = map (filter (/= i)) p -- clean the votes from the candidate with least first preferences 
+        i = fromMaybe 1 h --extract the candidate with least first preferences from Maybe
+        h = Map.lookup g m --Just # //the "name" of the candidate that the first/smallest key is pair with
         g = head $ take 1 $ Map.keys m -- 1 //take the first key from the Map as they are ordered and the least chosen candidate will be at first position in the Map
 
-
-
-
+{----}
 mapCandidates :: Poll -> Map Int Int
-mapCandidates p = Map.fromList $ zip d  ([head x | x <- c]) -- 2
+mapCandidates p = Map.fromList $ zip d  ([head x | x <- c]) -- zip the count of first occurrances for each candidate in first position with the candidate and put the pair in a map list
    where
-        d =  map length c
-        c =  group $ sort $ firstPreference p
+        d =  map length c -- list containing the count of occurrances for each candidate in first position [5,2,1,4]
+        c =  group $ sort $ firstPreference p {--list which contains lists with the candidates 
+        long as much as the number of times each of them appeared in the election [[1,1,1,1,1],[2,2],[3],[4,4,4,4]] --}
 
---([head x | x <- c])
+
+
 
 poll :: String 
 poll = "\
