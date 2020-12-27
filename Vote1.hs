@@ -7,25 +7,90 @@ import qualified Data.Map as Map
 import Data.Char
 import Data.List
 import Data.Maybe
-
-
--- *Vote1> c
--- [(1,3),(2,2),(4,4),(5,1)]
--- *Vote1> d
--- ["Candidate",": "]
--- *Vote1> putStr (head d) >>  putStrLn (" " ++ ( show $ snd $ head c))
--- Candidate 3
--- *Vote1>
+import Text.Read
 
 readVotes :: FilePath -> IO()
 readVotes path =  do
-    vote <- readFile path
-    -- print $ stringToIntVote $ separateVotes vote
-    -- print $ winnerCandidate  $ mapCandidates $ drawing $ stringToIntVote $ separateVotes vote
+    vote <- readFile path 
+
+
+
+ ----------First Past The Post System   
+    {--In this model of voting we take the first choice from each vote and the candidate with most occurances on first position
+    wins the election--}
+    putStr "\n"
+    print $ mapCandidates $ stringToIntVote $ separateVotes vote
+    putStr "Fisrt Past the Post Results: \nThe winner is: "
+    print $ winnerCandidate $ mapCandidates $ stringToIntVote $ separateVotes vote
+
+    
+
+----------Alternative Votin System
+    putStrLn "\nAlternative Voting System results: "
     let a = mapCandidates $ drawing $ stringToIntVote $ separateVotes vote
-    --print a
     print $ Map.assocs a
-    print $ show $ winnerCandidate $  a
+    putStr "The winner is candidate: "
+    print $ winnerCandidate  a
+
+
+{--Remove empty votes form the election--}
+cleanEmpty :: Poll -> Poll
+cleanEmpty p = [ x | x <- p , not (null x)]
+
+----------Single Transferable vote
+
+    --seats <- getLine 
+    -- if ((readMaybe (show seats) :: Maybe Int) == Just seats) 
+    --     then do
+    --         let nSeats = digitToInt seats
+    --         print nSeats
+    --     else print 2
+    --quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes seats) 
+
+
+    --seats <- getLine
+    --quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes seats)
+
+{--Connvert the input from the read file so it can be easily handled--}
+prepareElection :: String -> Poll
+prepareElection election = stringToIntVote $ separateVotes election 
+
+type Candidates = [Int]
+
+seats :: Int
+seats  = 3
+
+-- ********** once finished with the development delete this and use the one in readVotes 
+{--The quota calculating formula is:
+    votes /  seats to fill + 1--}
+quota :: Int
+quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes poll) seats + 1
+
+--[(Int,[Int])] -> [Int]
+
+{--List with the current candidates having enough first preferences--}
+findWinners :: Poll -> Candidates
+findWinners p = takeWhile (>= quota) $ map snd countWithPref
+    where 
+        countWithPref = zip (map length groupedSortedFirstPref ) $ map head  groupedSortedFirstPref -- [(5,1),(2,2),(1,3),(4,4)]
+        groupedSortedFirstPref = group $ sort $ firstPreference p --[[1,1,1,1,1],[2,2],[3],[4,4,4,4]]
+
+{--Check if we have enough winners to take all available seats--}
+enoughWinners :: Candidates -> Bool   
+enoughWinners winners = length winners > seats --  *** to read winners form file instead
+
+
+
+
+{--Delete as many votes, containing winners as first choice, as the value of the quota. We'll need the second choice of the rest of this votes to be assigned to the other votes having this second choice as first.--}
+updateVotes :: Poll -> Int -> Poll  --  ** to write helper funciton that passes candidtaes to updateVotes so we clean for all obtained candidates
+updateVotes p candidate = foldr (:) takeCandidate dropCandidate
+    where -- from all sublists headed by the candidate take only what is 
+        --above the quota (e.g quota 5 list 12 -> take 7 list headed by by the candidate)
+        takeCandidate = drop quota $ [ x | x <- p , head x == candidate]
+        dropCandidate = [ x | x <- p , head x /= candidate] -- take all sublists without the candidate as first preference
+-- ---------------------------------------------------------------------
+
 
 {--iterates over the election discarding candidates until one of them obtain majority--}
 drawing :: Poll -> Poll
@@ -64,15 +129,16 @@ topCandidateVotes m  = last $ Set.elems $ Map.keysSet m
 winnerCandidate :: Map Int Int -> Int
 winnerCandidate m = fromMaybe 1  $ Map.lookup (last $ Set.elems $ Map.keysSet m) m
 
-{--returns true if some of the candidates have been chosen more
-    times than the ha--}
+{--returns true if we one of the candidates has been chosen as first
+    preference more times than the half of the number of votes in the election--}
 winner :: Map Int Int -> Poll-> Bool 
 winner w  p = topCandidateVotes w > div (length $ firstPreference p) 2 
+
 
 {--remove the candidate with least first preferences
     in the votes and eventually clean the list from empty votes--}
 discard :: Map Int Int -> Poll -> Poll
-discard m p = [ x | x <- j , not (null x)] --take all votes witout the empty ones
+discard m p = cleanEmpty j --take all votes witout the empty ones
     where
         j = map (filter (/= i)) p -- clean the votes from the candidate with least first preferences 
         i = fromMaybe 1 h --extract the candidate with least first preferences from Maybe
