@@ -63,7 +63,7 @@ prepareElection election = stringToIntVote $ separateVotes election
 
 
 type Candidates = [Int]
-
+--  *** MUST BE MORE THAN ONE AS THIS ELECTION ALGORITHM IS FOR MULTIPLE CANDIDATES
 seats :: Int
 seats  = 3
 
@@ -84,17 +84,40 @@ quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes poll) s
 
 -- THE INITIAL STATEMENT IN reaVotes under SINGLE TRANSFER VOTE  SHOULD BE vote = [] : prepareElection poll
 
-keepWinners :: Poll -> Poll
+
+
+completeElection :: Poll -> Poll
+completeElection p = if takenSits >= seats 
+    then [head p] -- if we have enough winners the return the head of the list as it contains all the winners
+    else [foldr (:) candidatesLeft $ head p] -- else combine the rest of the list with its head
+
+    where
+       candidatesLeft =  map head $ group $ sort $ firstPreference $ tail p -- list with the candidates 
+       takenSits = length $ head p
+
+
+keepWinners :: Poll  -> Poll
 keepWinners p = (winnerCandidate (mapCandidates newWinner) : head p) : newWinner -- take the new winner and add it to the current ones, then add all this to the updated list
     where
-        newWinner = findWinners competitors -- the list in state with new winner available
+        newWinner = findWinners competitors (length $ head p) -- the list in state with new winner available
         competitors = tail p -- remove winners from the list 
 
+
 {--If we have candidate with first preferences above the quota then return it, else remove the one with least first pref --}
-findWinners :: Poll -> Poll
-findWinners p = if topCandidateVotes m >= quota then p else findWinners $ discardLeast m p --  *** ELSE DISCARD AND RUN ELEECTION until we can find topCandidate to return
+findWinners :: Poll -> Int -> Poll
+findWinners p winners 
+    | topCandidateVotes m >= quota --  || enough -- if we have top candidate or we have enough winners then return the candidate if is winner or the list with winners if we have winners
+    = p
+        --if enough then completeElection p else p -- if we have enough winners then return them else return the current winner and continue the election
+        --p 
+        -- if winners + the resto of candidates is more than the seats than carry on
+    | seats < winners + length (group $ sort $ firstPreference $ tail p) 
+        = findWinners (discardLeast m p) winners --  if we neither have enough winners or winner and there is more candidates than the seats we need to fill then remove the candidate with least preference so we can rerun the counting of 1st places with new 1st values in the votes
+    |otherwise =  p
+
     where
         m = mapCandidates p
+        -- enough = enoughWinners p
 
         
 --  ** TO CREATE EMPTY FILE BEFORE STARTING THE ALGORITHM AND TO DELETE IT ONCE EXITING THE ALGORITHM
@@ -104,9 +127,14 @@ storeWinner p = appendFile "stvWinner.txt" $ show t ++ "\n"
         t = winnerCandidate $ mapCandidates p
 
 {--Check if we have enough winners to take all available seats--}
--- enoughWinners :: FilePath  -> Bool   
--- enoughWinners fp = 
-    
+enoughWinners :: Poll  -> Bool   
+enoughWinners p = takenSits >= seats  -- if we already fill up all the seats
+    ||seats >= takenSits + length (group $ sort $ firstPreference $ tail p)   -- or if the number of all seats >= taken sit + candidates left
+     
+    where 
+        takenSits = length $ head p
+        --winners = head p
+
     --length winners > seats --  *** to read winners form file instead
 
 -- checkForDiscard :: Poll -> Poll
@@ -118,11 +146,17 @@ win p = [h] : (th : t)
         h = head $ head p
         th = tail $ head p
 
+
+stf :: Poll -> Poll
+stf p = if enoughWinners p then completeElection p else stf (updateVotes $ keepWinners p)
+
 {--Delete as many votes, containing winners as first choice, as the value of the quota. We'll need the second choice of the rest of this votes to be assigned to the other votes having this second choice as first.--}
 -- if not (null takeCandidate) then discardFirst cleanedVotes else cleanedVotes
 updateVotes :: Poll -> Poll  --  ** to write helper funciton that passes candidtaes to updateVotes so we clean for all obtained candidates
-updateVotes p  = head p : updated -- put back the list with winners in first position of the updates list
+updateVotes p  = if enoughWinners p then p else combine --
+    
     where  
+        combine = head p : updated -- put back the list with winners in first position of the updates list
         updated = cleanEmpty $ map (filter (/= candidate)) bindLists --Discard the winner as does not need to be part of the competition anymore and clean from empty lists
         -- from all sublists headed by the candidate take only what is 
         --above the quota (e.g quota 5 list 12 -> take 7 list headed by by the candidate)
