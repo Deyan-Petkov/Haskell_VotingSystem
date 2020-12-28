@@ -16,8 +16,9 @@ readVotes path =  do
 -----------Single Transfer Vote
     -- writeFile "stvWinner.txt" ""
     -- storeWinner $ findWinners $ prepareElection vote
-    let a = [] : prepareElection vote
-    
+    let votesWinnersList = [] : prepareElection vote --  the had of the list is a list holding the current winners
+    putStrLn "\nResults from Single Transfer Vote Ellectio:"
+    print $ stf votesWinnersList
 
 
 
