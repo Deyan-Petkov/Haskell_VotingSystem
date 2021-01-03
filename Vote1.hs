@@ -14,11 +14,10 @@ readVotes path =  do
     vote <- readFile path 
 
 -----------Single Transfer Vote
-    -- writeFile "stvWinner.txt" ""
-    -- storeWinner $ findWinners $ prepareElection vote
-    let votesWinnersList = [] : prepareElection vote --  the had of the list is a list holding the current winners
+
+    let votes = [] : prepareElection vote --  the head of the list is a list holding the current winners, initially empty
     putStrLn "\nResults from Single Transfer Vote Ellectio:"
-    print $ stf votesWinnersList
+    print $ stf votes
 
 
 
@@ -26,158 +25,118 @@ readVotes path =  do
     {--In this model of voting we take the first choice from each vote and the candidate with most occurances on first position
     wins the election--}
     putStr "\n"
-    print $ mapCandidates $ stringToIntVote $ separateVotes vote
+    print $ mapCandidates $ prepareElection vote
     putStr "Fisrt Past the Post Results: \nThe winner is: "
-    print $ winnerCandidate $ mapCandidates $ stringToIntVote $ separateVotes vote
+    print $ winnerCandidate $ mapCandidates $ prepareElection vote
 
     
 
 ----------Alternative Votin System
     putStrLn "\nAlternative Voting System results: "
-    let a = mapCandidates $ drawing $ stringToIntVote $ separateVotes vote
+    let a = mapCandidates $ drawing $ prepareElection vote
     print $ Map.assocs a
     putStr "The winner is candidate: "
     print $ winnerCandidate  a
 
 
-{--Remove empty votes form the election--}
-cleanEmpty :: Poll -> Poll
-cleanEmpty p = [ x | x <- p , not (null x)]
 
-----------Single Transferable vote
-
-    --seats <- getLine 
-    -- if ((readMaybe (show seats) :: Maybe Int) == Just seats) 
-    --     then do
-    --         let nSeats = digitToInt seats
-    --         print nSeats
-    --     else print 2
-    --quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes seats) 
-
-
-    --seats <- getLine
-    --quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes seats)
+---------Functions:
 
 {--Connvert the input from the read file so it can be easily handled--}
 prepareElection :: String -> Poll
 prepareElection election = stringToIntVote $ separateVotes election 
 
 
-type Candidates = [Int]
---  *** MUST BE MORE THAN ONE AS THIS ELECTION ALGORITHM IS FOR MULTIPLE CANDIDATES
+{--Remove empty votes form the election--}
+cleanEmpty :: Poll -> Poll
+cleanEmpty p = [ x | x <- p , not (null x)]
+
+
+----------Single Transferable vote
+{--We have seats preset to 3 --} -- 
 seats :: Int
 seats  = 3
 
--- ********** once finished with the development delete this and use the one in readVotes 
+
 {--The quota calculating formula is:
-    votes /  seats to fill + 1--}
+   votes /  seats to fill + 1--}
+-- quota :: Poll -> Int
+-- quota  p = div (length $ firstPreference p) seats + 1
 quota :: Int
 quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes poll) seats + 1
 
---[(Int,[Int])] -> [Int]
-
--- {--List with the current candidates having enough first preferences--}
--- findWinners :: Poll -> Candidates
--- findWinners p = takeWhile (>= quota) $ map snd countWithPref
---     where 
---         countWithPref = zip (map length groupedSortedFirstPref ) $ map head  groupedSortedFirstPref -- [(5,1),(2,2),(1,3),(4,4)]
---         groupedSortedFirstPref = group $ sort $ firstPreference p --[[1,1,1,1,1],[2,2],[3],[4,4,4,4]]
-
--- THE INITIAL STATEMENT IN reaVotes under SINGLE TRANSFER VOTE  SHOULD BE vote = [] : prepareElection poll
-
-
-
+{--Take the final state of the election and output the winners taking the seats--}
 completeElection :: Poll -> Poll
 completeElection p = if takenSits >= seats 
-    then [head p] -- if we have enough winners the return the head of the list as it contains all the winners
-    else [foldr (:) candidatesLeft $ head p] -- else combine the rest of the list with its head
+    then [head p] -- if we have enough winners then return the head of the list as it contains all the winners
+    else [foldr (:) candidatesLeft $ head p] {--else combine the rest of the list with candidates with its head 
+                                                to obtain all candidates which will take a seat.--}
 
     where
        candidatesLeft =  map head $ group $ sort $ firstPreference $ tail p -- list with the candidates 
-       takenSits = length $ head p
+       takenSits = length $ head p -- how many winners we have up to now
 
 
-keepWinners :: Poll  -> Poll
-keepWinners p = (winnerCandidate (mapCandidates newWinner) : head p) : newWinner -- take the new winner and add it to the current ones, then add all this to the updated list
+{--Add winner to the list with current winners (head of the Poll--}
+addWinner :: Poll  -> Poll
+addWinner p = (winnerCandidate (mapCandidates newWinner) : head p) : newWinner {--take the new winner and add it to the current ones, 
+                                                                                  then add all this to the updated with findWinners list--}
     where
         newWinner = findWinners competitors (length $ head p) -- the list in state with new winner available
         competitors = tail p -- remove winners from the list 
 
 
-{--If we have candidate with first preferences above the quota then return it, else remove the one with least first pref --}
+{--If we have candidate with first preferences above the quota then return it, else remove the one with least first pref 
+   The second parameter (Int) holds the current number of winners--}
 findWinners :: Poll -> Int -> Poll
 findWinners p winners 
-    | topCandidateVotes m >= quota --  || enough -- if we have top candidate or we have enough winners then return the candidate if is winner or the list with winners if we have winners
-    = p
-        --if enough then completeElection p else p -- if we have enough winners then return them else return the current winner and continue the election
-        --p 
-        -- if winners + the resto of candidates is more than the seats than carry on
+    | topCandidateVotes m >= quota = p -- if we have top candidate then return it
+
+        -- if winners + the rest of candidates is more than the seats than carry on, there is no threat of running out of candidates
     | seats < winners + length (group $ sort $ firstPreference $ tail p) 
-        = findWinners (discardLeast m p) winners --  if we neither have enough winners or winner and there is more candidates than the seats we need to fill then remove the candidate with least preference so we can rerun the counting of 1st places with new 1st values in the votes
-    |otherwise =  p
+        = findWinners (discardLeast m p) winners
+    |otherwise =  p {--if seats are equal to or more than winners + candidates left, then return the list 
+                       as we cannot afford to delete more candidates--}
 
     where
-        m = mapCandidates p
-        -- enough = enoughWinners p
+        m = mapCandidates p -- map candidates to the number of times each appear as first preference in the votes
 
-        
---  ** TO CREATE EMPTY FILE BEFORE STARTING THE ALGORITHM AND TO DELETE IT ONCE EXITING THE ALGORITHM
-storeWinner :: Poll  -> IO()
-storeWinner p = appendFile "stvWinner.txt" $ show t ++ "\n"
-    where 
-        t = winnerCandidate $ mapCandidates p
 
-{--Check if we have enough winners to take all available seats--}
+
+{--Returns False if we still need to fill up seats or the number of seats is smaller than the winners + candidates left
+   If enoughWinners return True we should stop looking for winners as if we remove one more candidate with least 1st preferences 
+    then we would not have enough to fill up the seats.--}
 enoughWinners :: Poll  -> Bool   
-enoughWinners p = takenSits >= seats  -- if we already fill up all the seats
-    ||seats >= takenSits + length (group $ sort $ firstPreference $ tail p)   -- or if the number of all seats >= taken sit + candidates left
+enoughWinners p = takenSits >= seats  -- if we already filled up all the seats
+    ||seats >= takenSits + length (group $ sort $ firstPreference $ tail p)-- or if we have just enough winners + condidates left to fill up the seats
      
     where 
-        takenSits = length $ head p
-        --winners = head p
-
-    --length winners > seats --  *** to read winners form file instead
-
--- checkForDiscard :: Poll -> Poll
--- checkForDiscard p =
-win :: Poll -> Poll
-win p = [h] : (th : t)
-    where
-        t = tail p
-        h = head $ head p
-        th = tail $ head p
+        takenSits = length $ head p -- winners are stored in the head of the list
 
 
+{--Single Transfer Vote will recursively call findWinners, addWinner and updateVotes untill enoughWiners is satisfied--}
 stf :: Poll -> Poll
-stf p = if enoughWinners p then completeElection p else stf (updateVotes $ keepWinners p)
+stf p = if enoughWinners p then completeElection p else stf (updateVotes $ addWinner p)
 
-{--Delete as many votes, containing winners as first choice, as the value of the quota. We'll need the second choice of the rest of this votes to be assigned to the other votes having this second choice as first.--}
--- if not (null takeCandidate) then discardFirst cleanedVotes else cleanedVotes
-updateVotes :: Poll -> Poll  --  ** to write helper funciton that passes candidtaes to updateVotes so we clean for all obtained candidates
+
+{--Delete as many votes containing the winner as first choice, as the value of the quota. 
+   We'll need the second choice of the rest of this votes so we can improove the results for the rest of the candidates 
+   which eventually will give us new winner.--}
+updateVotes :: Poll -> Poll 
 updateVotes p  = if enoughWinners p then p else combine --
     
     where  
         combine = head p : updated -- put back the list with winners in first position of the updates list
-        updated = cleanEmpty $ map (filter (/= candidate)) bindLists --Discard the winner as does not need to be part of the competition anymore and clean from empty lists
-        -- from all sublists headed by the candidate take only what is 
-        --above the quota (e.g quota 5 list 12 -> take 7 list headed by by the candidate)
-        bindLists = foldr (:) takeCandidate dropCandidate
-        takeCandidate = drop quota $ [ x | x <- competitors , head x == candidate]
+        updated = cleanEmpty $ map (filter (/= candidate)) bindLists --Discard the winner as does not need to be part of the competition anymore and clean from empty sublists
+        bindLists = foldr (:) takeCandidate dropCandidate -- the new state of the election list
+        takeCandidate = drop (quota ) $ [ x | x <- competitors , head x == candidate] {--take all votes with the top candidate as first preference but remove as many of 
+            these votes as the quota(the rest of the votes will help other candidates achieve majority after removing the current winner from first place)--}
         dropCandidate = [ x | x <- competitors , head x /= candidate] -- take all sublists without the candidate as first preference
         candidate = winnerCandidate $ mapCandidates competitors -- top candidate
-        competitors = tail p -- take only the candidates which are still in the competition
-        -- bindLists = foldr (:) takeCandidate dropCandidate
-        -- takeCandidate = drop quota $ [ x | x <- p , head x == candidate]
-        -- dropCandidate = [ x | x <- p , head x /= candidate] -- take all sublists without the candidate as first preference
-        -- candidate = winnerCandidate $ mapCandidates p -- top candidate
+        competitors = tail p -- take only the candidates which are still in the competition and ommit the winners
 
--- {--Discard the winner as does not need to be part of the competition anymore--}
--- discardFirst :: Poll -> Poll
--- discardFirst p = cleanEmpty j --take all votes witout the empty ones
---     where
---         j = map (filter (/= (winnerCandidate $ mapCandidates p))) p -- clean the votes from the top candidate as he doesn't need to be part of the competition anymore
--- ---------------------------------------------------------------------
 
+----------------------Alternative Voting System
 
 {--iterates over the election discarding candidates until one of them obtain majority--}
 drawing :: Poll -> Poll
@@ -250,8 +209,6 @@ mapCandidates p = Map.fromList $ zip d  ([head x | x <- c]) -- zip the count of 
         d =  map length c -- list containing the count of occurrances for each candidate in first position [5,2,1,4]
         c =  group $ sort $ firstPreference p {--list which contains lists with the candidates 
 long as much as the number of times each of them appeared in the election [[1,1,1,1,1],[2,2],[3],[4,4,4,4]] --} 
-
-
 
 
 poll :: String 
