@@ -25,8 +25,8 @@ readVotes path =  do
     {--In this model of voting we take the first choice from each vote and the candidate with most occurances on first position
     wins the election--}
     putStr "\n"
-    print $ mapCandidates $ prepareElection vote
     putStr "Fisrt Past the Post Results: \nThe winner is: "
+    print $ mapCandidates $ prepareElection vote
     print $ winnerCandidate $ mapCandidates $ prepareElection vote
 
     
@@ -38,6 +38,22 @@ readVotes path =  do
     putStr "The winner is candidate: "
     print $ winnerCandidate  a
 
+
+
+ ----------Borda Count Voting System
+
+    putStrLn "\nBorda Count Voting System results: "
+    let bc = bordaCount $ prepareElection vote
+    print bc
+    putStrLn $ "The winner is candidate: " ++ (show $ snd bc) ++ " \nTotal points : " ++ (show $ fst bc)
+    -- print $ (show $ snd bc) ++ " with total points : " ++ (show $ fst bc)
+
+
+ ----------Contingent Voting System
+    putStrLn "\nContingent Voting System results: "
+    let cv = contingentVoting $ prepareElection vote
+    print cv
+    putStrLn $ "The winner is candidate: " ++ (show $ snd cv) ++ "\nwith " ++ (show $ fst cv) ++ " votes."
 
 
 ---------Functions:
@@ -53,7 +69,6 @@ cleanEmpty p = [ x | x <- p , not (null x)]
 
 
 ----------Single Transferable vote
-{--We have seats preset to 3 --} -- 
 seats :: Int
 seats  = 3
 
@@ -62,6 +77,7 @@ seats  = 3
    votes /  seats to fill + 1--}
 -- quota :: Poll -> Int
 -- quota  p = div (length $ firstPreference p) seats + 1
+
 quota :: Int
 quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes poll) seats + 1
 
@@ -184,7 +200,7 @@ leastCandidate m = fromMaybe 1 h --extract the candidate with least first prefer
 winnerCandidate :: Map Int Int -> Int
 winnerCandidate m = fromMaybe 1  $ Map.lookup (last $ Set.elems $ Map.keysSet m) m
 
-{--returns true if we one of the candidates has been chosen as first
+{--returns true if one of the candidates has been chosen as first
     preference more times than the half of the number of votes in the election--}
 winner :: Map Int Int -> Poll-> Bool 
 winner w  p = topCandidateVotes w > div (length $ firstPreference p) 2 
@@ -209,6 +225,65 @@ mapCandidates p = Map.fromList $ zip d  ([head x | x <- c]) -- zip the count of 
         d =  map length c -- list containing the count of occurrances for each candidate in first position [5,2,1,4]
         c =  group $ sort $ firstPreference p {--list which contains lists with the candidates 
 long as much as the number of times each of them appeared in the election [[1,1,1,1,1],[2,2],[3],[4,4,4,4]] --} 
+
+
+-- ============================  Borda Count Voting System
+    
+
+{--Find the number of candidates in the election--}
+candidatesCount :: Poll -> Int
+candidatesCount p = maximum $ map length p
+
+{--We take a Poll and return a list containing lists with pairs of the candidate and the points of each candidate (according to his prefference position).--}
+setPoints :: Poll -> [[(Int,Int)]]
+setPoints x = [zip a [candCnt, (candCnt - 1)..1] | a <- x]
+--[[(4,4),(3,2),(2,3),(1,1)]...]
+    where 
+        candCnt =  candidatesCount x
+
+
+{--returns pair of the points and the winner candidate--}
+bordaCount :: Poll -> (Int, Int)
+bordaCount p = last $ sort $ [(y,x) | (x,y) <- zip ([fst $ head x | x <- pointPerVote]) $ map sum $ map (\z -> [y | (x,y) <- z]) pointPerVote ]
+                -- j 
+    where
+        pointPerVote = map (\z-> [(x,y) | (x,y) <- (sort $ concat $ setPoints p), x == z]) [1..(candidatesCount p)] {--list containing lists with pairs of the candidate and its points for single vote --}
+        
+        -- c = sort $ concat $ setPoints p  -- list with sorted pairs of candidates and their points for each vote
+        -- d = map (\z-> [(x,y) | (x,y) <- c, x == z]) [1,2,3,4]  -- list containing lists with pairs of the candidate and its points for single vote
+        -- e = map (\z -> [y | (x,y) <- z]) d  -- list with the points for each candidate
+        -- f = map sum e  -- list with total points for each candidate (1,2,3...)
+        -- g = [fst $ head x | x <- d]   -- list with the candidates in order given in d
+        -- h = zip g f   -- zip candidate and its total points according to preference position
+        -- i = [(y,x) | (x,y) <- h]  - reverse candidate and points in each pair
+        -- j = last $ sort i  -- returns pair of the points and the winner candidate
+
+
+
+-- ============================  Contingent Voting System
+
+{--If none of the candidates achieved majority after the initial counting of first 
+   preferences then remove all but the two leading candidates from the election, and count the first preferences again with the new state of the votes.--}
+contingentVoting :: Poll -> (Int,Int)
+contingentVoting p 
+    | winner a p = Map.findMax a -- Map.findMax a
+    | otherwise = Map.findMax $ mapCandidates $ keepWinners p (Map.elems $ last $ take 3 $ iterate Map.deleteMax a) -- g
+    where
+        a = mapCandidates p -- put the candidates in pair with their number of first preference
+        -- b = winner a p -- True/False
+        -- c = take 3 $ iterate Map.deleteMax a -- delete the 2 most chosen candidates as first preference
+        -- d = Map.elems $ last c -- all candidates except the 2 current winners
+        -- e = keepWinners p d -- discard all candidates except the 2 winners
+        -- f = mapCandidates e -- put the candidates in pair with their number of first preference
+        -- g = Map.findMax f -- returns the winner(if we have 2 winners with same number of first preferences will return one of them, but this is hard to happen in real election. We can handle this returning 0 (asking for new voting) if f size is 1)
+
+{--discard all candidates in the Poll which are in the Int list. The Int list should contain all candidates except the two with most first preferences. So this function should return the two most chosen candidates.--}
+keepWinners :: Poll -> [Int] -> Poll
+keepWinners p (w:xw) = keepWinners [filter (/= w) x | x <- p] xw
+keepWinners p [] = cleanEmpty p
+
+
+
 
 
 poll :: String 
