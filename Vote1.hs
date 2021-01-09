@@ -12,55 +12,103 @@ import Text.Read
 readVotes :: FilePath -> IO()
 readVotes path =  do
     vote <- readFile path 
-
+    let election = prepareElection vote
 -----------Single Transfer Vote
 
-    let votes = [] : prepareElection vote --  the head of the list is a list holding the current winners, initially empty
-    putStrLn "\nResults from Single Transfer Vote Ellectio:"
+    let votes = [] : election --  the head of the list is a list holding the current winners, initially empty
+    putStrLn "\nResults from Single Transfer Vote Election:"
     print $ stf votes
+    putStrLn "\n"
 
 
 
  ----------First Past The Post System   
     {--In this model of voting we take the first choice from each vote and the candidate with most occurances on first position
     wins the election--}
-    putStr "\n"
-    putStr "Fisrt Past the Post Results: \nThe winner is: "
-    print $ mapCandidates $ prepareElection vote
-    print $ winnerCandidate $ mapCandidates $ prepareElection vote
+    -- putStrLn "Fisrt Past the Post Results: \n"
+    -- let mapAssocs = mapCandidates election
+    -- mapM_ putStrLn ["Candidate " ++ (show y) ++ " has " ++ (show x) ++ " votes in total" | (x,y) <- Map.assocs mapAssocs]
+    -- putStr "The winner is candidate: "  >> putStr (show $ winnerCandidate mapAssocs)
+    -- putStrLn "\n"
 
     
 
-----------Alternative Votin System
-    putStrLn "\nAlternative Voting System results: "
-    let a = mapCandidates $ drawing $ prepareElection vote
-    print $ Map.assocs a
-    putStr "The winner is candidate: "
-    print $ winnerCandidate  a
+-- ----------Alternative Votin System
+
+-----old
+--     putStrLn "\nAlternative Voting System results: "
+--     let a = mapCandidates $ drawing election
+--     print $ Map.assocs a
+--     putStr "The winner is candidate: "
+--     print $ winnerCandidate  a
+
+-----new
+    -- let a = pollToIOPoll election
+    -- candidateVotesAssoc $ drawing a
 
 
 
- ----------Borda Count Voting System
+--  ----------Borda Count Voting System
 
-    putStrLn "\nBorda Count Voting System results: "
-    let bc = bordaCount $ prepareElection vote
-    print bc
-    putStrLn $ "The winner is candidate: " ++ (show $ snd bc) ++ " \nTotal points : " ++ (show $ fst bc)
-    -- print $ (show $ snd bc) ++ " with total points : " ++ (show $ fst bc)
+--     putStrLn "\nBorda Count Voting System results: "
+--     let bc = bordaCount election
+--     print bc
+--     putStrLn $ "The winner is candidate: " ++ show (snd bc) ++ " \nTotal points : " ++ show (fst bc)
+--     -- print $ (show $ snd bc) ++ " with total points : " ++ (show $ fst bc)
 
 
- ----------Contingent Voting System
-    putStrLn "\nContingent Voting System results: "
-    let cv = contingentVoting $ prepareElection vote
-    print cv
-    putStrLn $ "The winner is candidate: " ++ (show $ snd cv) ++ "\nwith " ++ (show $ fst cv) ++ " votes."
+--  ----------Contingent Voting System
+--     putStrLn "\nContingent Voting System results: "
+--     let cv = contingentVoting election
+--     print cv
+--     putStrLn $ "The winner is candidate: " ++ (show $ snd cv) ++ "\nwith " ++ (show $ fst cv) ++ " votes."
 
 
 ---------Functions:
 
+-- candidateVotesAssoc :: Map Int Int -> IO ()
+-- candidateVotesAssoc m = mapM_ putStrLn ["Candidate " ++ (show y) ++ " has " ++ (show x) ++ " votes in total" | (x,y) <- Map.assocs m]
+
+pollToIOPoll :: Poll -> IO Poll
+pollToIOPoll = return
+
+-- pronounceWinner :: IO Poll -> IO ()
+-- pronounceWinner p = do
+--     a <- p
+--     putStr "The winner is candidate: "
+--     print $ winnerCandidate  a
+
+
+
+candidateVotesAssoc :: IO Poll -> IO ()
+candidateVotesAssoc p = do
+    a <- p
+    let m = mapCandidates a
+
+
+    -- if Map.size m > 1 then 
+    --     mapM_ putStrLn ["Candidate " ++ (show y) ++ " has " ++ (show x) ++ " votes in total" | (x,y) <- Map.assocs m]
+    -- else do
+    --     putStr "The winner is candidate: "
+    --     putStrLn . show $ winnerCandidate  m
+    --putStrLn $ "Votes Left: " ++ show (sum $ Map.keys m)
+    putStrLn $ "Votes Left: " ++ show (length a)
+    putStrLn "First preferences:"
+
+    if winner m a then do
+        mapM_ putStrLn ["Candidate " ++ (show y) ++ ": " ++ (show x) | (x,y) <- Map.assocs m]
+        putStr "\n"
+        putStrLn $ "Candidate " ++ show (winnerCandidate  m) ++ " is selected.\n"
+        else
+        mapM_ putStrLn ["Candidate " ++ (show y) ++ ": " ++ (show x) | (x,y) <- Map.assocs m]  
+
+    
+    
+
+
 {--Connvert the input from the read file so it can be easily handled--}
 prepareElection :: String -> Poll
-prepareElection election = stringToIntVote $ separateVotes election 
+prepareElection elctn = stringToIntVote $ separateVotes elctn 
 
 
 {--Remove empty votes form the election--}
@@ -69,15 +117,14 @@ cleanEmpty p = [ x | x <- p , not (null x)]
 
 
 ----------Single Transferable vote
+{--We have seats preset to 3 --} --  **** To add user input defining the numbre of seats
 seats :: Int
 seats  = 3
 
 
 {--The quota calculating formula is:
    votes /  seats to fill + 1--}
--- quota :: Poll -> Int
--- quota  p = div (length $ firstPreference p) seats + 1
-
+--  *** to find solution to the quota problem - it is wrong to assign new quota upon the new size of the list, it should be constant as it is no, but shoudln't be a constant equal only to the input1 size as it is now
 quota :: Int
 quota  = div (length $ firstPreference $ stringToIntVote $ separateVotes poll) seats + 1
 
@@ -106,7 +153,7 @@ addWinner p = (winnerCandidate (mapCandidates newWinner) : head p) : newWinner {
    The second parameter (Int) holds the current number of winners--}
 findWinners :: Poll -> Int -> Poll
 findWinners p winners 
-    | topCandidateVotes m >= quota = p -- if we have top candidate then return it
+    | topCandidateVotes m >= quota = p -- if we have top candidate then return the list as it is
 
         -- if winners + the rest of candidates is more than the seats than carry on, there is no threat of running out of candidates
     | seats < winners + length (group $ sort $ firstPreference $ tail p) 
@@ -155,10 +202,22 @@ updateVotes p  = if enoughWinners p then p else combine --
 ----------------------Alternative Voting System
 
 {--iterates over the election discarding candidates until one of them obtain majority--}
-drawing :: Poll -> Poll
-drawing p = if winner m p then p else drawing (discardLeast m p)
-    where
-        m = mapCandidates p
+drawing :: IO Poll -> IO Poll
+drawing p = do
+    a <- p
+    let m = mapCandidates a
+    if winner m a then do 
+        --return $ discardLeast m a
+        p
+            
+        else do
+        candidateVotesAssoc p
+        putStrLn $ "Candidate " ++ show (leastCandidate m) ++ " is eliminated.\n"
+
+        let discarded = return $ discardLeast m a
+
+        -- drawing (return $ discardLeast m a)
+        drawing discarded
 
 {--After reading the file containing votes we need to split 
 the votes and candidates from each other in a way that we can
@@ -234,7 +293,7 @@ long as much as the number of times each of them appeared in the election [[1,1,
 candidatesCount :: Poll -> Int
 candidatesCount p = maximum $ map length p
 
-{--We take a Poll and return a list containing lists with pairs of the candidate and the points of each candidate (according to his prefference position).--}
+{--We take a Poll and return a list containing lists with pairs of the candidate and his/hers points (according to prefference position).--}
 setPoints :: Poll -> [[(Int,Int)]]
 setPoints x = [zip a [candCnt, (candCnt - 1)..1] | a <- x]
 --[[(4,4),(3,2),(2,3),(1,1)]...]
@@ -242,7 +301,7 @@ setPoints x = [zip a [candCnt, (candCnt - 1)..1] | a <- x]
         candCnt =  candidatesCount x
 
 
-{--returns pair of the points and the winner candidate--}
+{--returns winner candidate paired with achieved points--}
 bordaCount :: Poll -> (Int, Int)
 bordaCount p = last $ sort $ [(y,x) | (x,y) <- zip ([fst $ head x | x <- pointPerVote]) $ map sum $ map (\z -> [y | (x,y) <- z]) pointPerVote ]
                 -- j 
@@ -266,7 +325,7 @@ bordaCount p = last $ sort $ [(y,x) | (x,y) <- zip ([fst $ head x | x <- pointPe
    preferences then remove all but the two leading candidates from the election, and count the first preferences again with the new state of the votes.--}
 contingentVoting :: Poll -> (Int,Int)
 contingentVoting p 
-    | winner a p = Map.findMax a -- Map.findMax a
+    | winner a p = Map.findMax a --returns the winner if we have majority
     | otherwise = Map.findMax $ mapCandidates $ keepWinners p (Map.elems $ last $ take 3 $ iterate Map.deleteMax a) -- g
     where
         a = mapCandidates p -- put the candidates in pair with their number of first preference
