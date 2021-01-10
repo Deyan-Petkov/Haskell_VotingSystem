@@ -18,8 +18,9 @@ readVotes path =  do
     let votes = [] : election --  the head of the list is a list holding the current winners, initially empty
     putStrLn "\n\nResults from Single Transfer Vote Election:\n"
     let quota  = (div (length election) (seats + 1))+1 -- formula for obtaining the minimum number of first preferences required for electing a candidate
-    print $ stf votes quota
-    putStr "Quota " >> (putStrLn . show) quota
+    
+    putStr "Ellected winners: " >> putStrLn (init $ init $ concat [show x ++ ", "| x <- head $ stf votes quota])
+    --putStr "Quota " >> (putStrLn . show) quota
 
 
 
@@ -211,15 +212,16 @@ enoughWinners p = takenSits >= seats  -- if we already filled up all the seats
    We'll need the second choice of the rest of this votes so we can improove the results for the rest of the candidates 
    which eventually will give us new winner.--}
 updateVotes :: Poll -> Int -> Poll 
-updateVotes p quota = if enoughWinners p then p else combine --
+updateVotes p quota = if enoughWinners p then p else head p : (cleanEmpty $ map (filter (/= candidate)) $ foldr (:) (drop (quota) [ x | x <- competitors , head x == candidate])  [ x | x <- competitors , head x /= candidate])
+                    --if enoughWinners p then p else combine 
     
     where  
-        combine = head p : updated -- put back the list with winners in first position of the updates list
-        updated = cleanEmpty $ map (filter (/= candidate)) bindLists --Discard the winner as does not need to be part of the competition anymore and clean from empty sublists
-        bindLists = foldr (:) takeCandidate dropCandidate -- the new state of the election list
-        takeCandidate = drop (quota ) $ [ x | x <- competitors , head x == candidate] {--take all votes with the top candidate as first preference but remove as many of 
-            these votes as the quota(the rest of the votes will help other candidates achieve majority after removing the current winner from first place)--}
-        dropCandidate = [ x | x <- competitors , head x /= candidate] -- take all sublists without the candidate as first preference
+        -- combine = head p : updated -- put back the list with winners in first position of the updates list
+        -- updated = cleanEmpty $ map (filter (/= candidate)) bindLists --Discard the winner as does not need to be part of the competition anymore and clean from empty sublists
+        -- bindLists = foldr (:) takeCandidate dropCandidate -- the new state of the election list
+        -- takeCandidate = drop (quota ) $ [ x | x <- competitors , head x == candidate] {--take all votes with the top candidate as first preference but remove as many of 
+        --     these votes as the quota(the rest of the votes will help other candidates achieve majority after removing the current winner from first place)--}
+        -- dropCandidate = [ x | x <- competitors , head x /= candidate] -- take all sublists without the candidate as first preference
         candidate = winnerCandidate $ mapCandidates competitors -- top candidate
         competitors = tail p -- take only the candidates which are still in the competition and ommit the winners
 
